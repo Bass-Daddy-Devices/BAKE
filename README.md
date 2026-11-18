@@ -42,12 +42,16 @@ Open `BAKE_WORKSPACE.xcworkspace` (not the project) in Xcode to run the app: the
 
 ## License
 
-BAKE is free software under the **GNU General Public License, version 3** ([LICENSE](LICENSE)). You may use, study, change and share it. If you distribute a modified version, you must publish its source under the GPL too.
+BAKE is open source under the **MIT License** ([LICENSE](LICENSE)). You may use, copy, change, share and sell it, in open or closed products, as long as you keep the copyright and license notice. It comes with no warranty.
 
-Signed, ready-to-run builds of BAKE are sold by its author. Buying one supports development; building it yourself from this repository is always allowed.
+Copyright © 2026 Chris Connelly and BAKE contributors. Each contributor keeps the copyright in their own work.
 
-Third-party code is listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Only permissively licensed dependencies are used.
+- **Your work is yours.** Projects, rendered audio, wavetable exports and `.bakenode` files you make with BAKE belong to you. The license doesn't apply to them.
+- **Signed builds.** Signed, ready-to-run builds of BAKE are sold by its author. Buying one supports development; building it yourself from this repository is always allowed.
+- **The name.** The license covers the code, not the BAKE name or logo. If you distribute a modified version, please give it its own name and icon.
+- **Earlier versions.** Code published before 2026-11-18 was released under GPLv3; those copies stay available under it. Everything from now on, including that code, is offered under MIT.
+- **Third-party code** is listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Only permissively licensed dependencies are used.
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first: every contributor signs the [Contributor License Agreement](CLA.md) before a first pull request is merged.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. There is no CLA: you keep your copyright, your work is released under the same MIT License as the rest of BAKE, and you sign off each commit (`git commit -s`).
