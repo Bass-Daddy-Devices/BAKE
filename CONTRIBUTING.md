@@ -2,11 +2,19 @@
 
 Thank you for helping. This page covers how to contribute, what BAKE is looking for, and the rules every node and fix follows.
 
-## Before your first pull request: the CLA
+## Before your first pull request: license and sign-off
 
-Every contributor signs the [Contributor License Agreement](CLA.md) once, before a first pull request is merged. A bot asks you on your first pull request; it takes a minute.
+BAKE is open source under the [MIT License](LICENSE). When you contribute, your work is released under that license along with the rest of BAKE. **You keep the copyright in your work.** There is no CLA and no copyright assignment.
 
-**Why:** BAKE is GPLv3, and its author also sells signed builds. The CLA lets your contribution go into those builds too, and lets the project change its license later if it needs to. You keep the copyright in your work, and your contribution stays available under the GPL like the rest of BAKE.
+**Sign off every commit.** Add a `Signed-off-by: Your Name <you@example.com>` line with `git commit -s`. It certifies the [Developer Certificate of Origin](https://developercertificate.org/): you wrote the change, or you have the right to submit it under BAKE's license. Use your real name. Forgot? `git commit --amend -s` fixes the last commit, and `git rebase --signoff main` fixes a branch. Pull requests with unsigned commits aren't merged.
+
+**Employer or university.** If you work for a company, or study or research at a university, make sure they allow you to contribute this work. Some own what their people write.
+
+**Other people's code.** Write the DSP yourself from published algorithms. If a contribution includes anyone else's code, data or assets, say so in the pull request with its source and license. It must be under a permissive license (MIT, BSD, ISC, zlib, Apache-2.0, Boost, CC0 or similar) and gets an entry in `THIRD_PARTY_NOTICES.md`. No GPL, LGPL or AGPL code (it would force the whole app under its terms), and nothing without a license.
+
+**AI tools.** You may use them. If you do: say so in the pull request and add a trailer such as `Assisted-by: <tool>` to the commit; read and understand every line, and be able to explain it; make the design decisions yourself; make sure the output doesn't reproduce someone else's code; and check that the tool's terms let you contribute it under BAKE's license. AI agents don't add `Signed-off-by`: the person submitting the change does.
+
+**Why MIT:** it's simple and asks almost nothing of anyone. Anyone may build on BAKE, including commercially, as long as the notice stays. The author also sells signed, ready-to-run builds of the same software; building it yourself from this repository is always allowed.
 
 ## What BAKE is looking for
 
@@ -28,7 +36,7 @@ Not sure if an idea fits? Open an issue first and describe the sound you're afte
    xcodebuild -workspace BAKE_WORKSPACE.xcworkspace -scheme BAKE -destination 'platform=macOS' \
      -derivedDataPath /tmp/bake-dd build
    ```
-4. **Open a pull request** that says what changed, why, and how you tested it (paste the test summary lines). For a node, add what it sounds like and the settings you liked.
+4. **Open a pull request** that says what changed, why, and how you tested it (paste the test summary lines). Every commit must be signed off (see above). For a node, add what it sounds like and the settings you liked.
 
 **Fixing a bug:** reproduce it first with a failing test, find the root cause, make the smallest fix that addresses it (no drive-by refactors), and show the test passing.
 
@@ -61,7 +69,7 @@ These protect BAKE's guarantees. Breaking one means the change can't be merged.
 - **Plain C++ interface.** `noexcept` free functions over `const float*` / `float*` and counts, enums and small structs. No exceptions or owning objects across the Swift boundary.
 - **Finite and bounded.** Never output NaN or infinity; guard divisions and feedback; feedback paths need a limit, and DC-producing processes a DC blocker.
 - **Exact when unmodulated.** Kernels that take a fixed value read it with `bake::dsp::modulatedOr`, so an unmodulated render keeps its exact bits.
-- **Licensing.** Write the DSP yourself from published algorithms. No code from GPL, LGPL or AGPL projects: BAKE's signed builds can't include it. Any vendored code needs a permissive license and an entry in `THIRD_PARTY_NOTICES.md`.
+- **Licensing.** Write the DSP yourself from published algorithms. No code from GPL, LGPL or AGPL projects: it would pull BAKE under copyleft terms, so dependencies stay permissive. Any vendored code needs a permissive license and an entry in `THIRD_PARTY_NOTICES.md`.
 
 ## Required tests
 
