@@ -10,11 +10,14 @@
 #
 # Then, from the repository root:   scripts/notarize.sh
 # Dry run (archive, export and sign, but don't send to Apple):   scripts/notarize.sh --no-notarize
+# release.sh passes build settings in BAKE_BUILD_SETTINGS; run alone, nothing changes.
 set -euo pipefail
 
 PROFILE="${BAKE_NOTARY_PROFILE:-BAKE-notary}"
 NOTARIZE=1
 [[ "${1:-}" == "--no-notarize" ]] && NOTARIZE=0
+# Extra build settings from release.sh, e.g. "CURRENT_PROJECT_VERSION=412 BAKE_FEED_URL=https://…".
+read -r -a EXTRA_SETTINGS <<< "${BAKE_BUILD_SETTINGS:-}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/build/release"
@@ -28,7 +31,9 @@ step() { printf '\n==> %s\n' "$1"; }
 step "Archiving (Release)"
 xcodebuild archive \
     -workspace "$ROOT/BAKE_WORKSPACE.xcworkspace" -scheme BAKE -configuration Release \
-    -destination 'generic/platform=macOS' -archivePath "$ARCHIVE" -quiet
+    -destination 'generic/platform=macOS' -archivePath "$ARCHIVE" \
+    -clonedSourcePackagesDirPath "$ROOT/build/packages" -quiet \
+    ${EXTRA_SETTINGS[@]+"${EXTRA_SETTINGS[@]}"}
 
 step "Exporting with Developer ID"
 xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportPath "$EXPORT" \
