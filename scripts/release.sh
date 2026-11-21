@@ -8,7 +8,7 @@
 #
 # Needs: gh (logged in), the BAKE-notary Keychain profile (see notarize.sh), the Sparkle key in the
 # Keychain (generate_keys, once), and a clean bake-site checkout at $BAKE_SITE (default ../bake-site).
-# Run again after a failure: an existing release with the identical DMG is reused.
+# If a run stops after creating the GitHub Release, see the message the next run prints.
 set -euo pipefail
 
 VERSION="${1:-}"
@@ -48,6 +48,9 @@ PROJECT_VERSION="$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' "$ROOT/BAKE/BAK
 if [[ $REHEARSAL == 0 && "$PROJECT_VERSION" != "$VERSION" ]]; then
     fail "the project's MARKETING_VERSION is $PROJECT_VERSION, not $VERSION (bump it in a \"release: $VERSION\" commit)"
 fi
+if [[ $REHEARSAL == 1 && "$(printf '%s\n%s\n' "$VERSION" "$PROJECT_VERSION" | sort -V | head -n1)" != "$VERSION" || $REHEARSAL == 1 && "$VERSION" == "$PROJECT_VERSION" ]]; then
+    fail "a rehearsal version must be lower than the project's MARKETING_VERSION ($PROJECT_VERSION)"
+fi
 # Rehearsals don't need committed notes.
 if [[ $REHEARSAL == 1 && ! -f "$NOTES" ]]; then
     NOTES="$(mktemp)"
@@ -60,6 +63,10 @@ if [[ $DRY_RUN == 0 ]]; then
     [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$(git -C "$ROOT" rev-parse origin/main)" ]] || fail "main isn't equal to origin/main"
 fi
 gh auth status >/dev/null 2>&1 || fail "gh isn't logged in (gh auth login)"
+if [[ -n "$(git -C "$ROOT" ls-remote --tags origin "refs/tags/$TAG")" ]] || gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
+    EXISTS_MSG="$TAG already exists. If the last run stopped after creating the release, push the bake-site commit by hand (git -C $SITE push origin main). Otherwise delete it (gh release delete $TAG -R $REPO --cleanup-tag --yes) and run again."
+    if [[ $DRY_RUN == 1 ]]; then echo "warning: $EXISTS_MSG" >&2; else fail "$EXISTS_MSG"; fi
+fi
 xcrun notarytool history --keychain-profile "${BAKE_NOTARY_PROFILE:-BAKE-notary}" >/dev/null 2>&1 \
     || fail "the BAKE-notary Keychain profile is missing (see scripts/notarize.sh)"
 xcodebuild -resolvePackageDependencies -workspace "$ROOT/BAKE_WORKSPACE.xcworkspace" -scheme BAKE \
@@ -69,7 +76,12 @@ PUBLIC_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$ROOT/BAKE/BAKE
     || fail "the Sparkle key in the Keychain doesn't match SUPublicEDKey in Info.plist"
 [[ -d "$SITE/.git" ]] || fail "no bake-site checkout at $SITE (set BAKE_SITE)"
 [[ -z "$(git -C "$SITE" status --porcelain)" ]] || fail "the bake-site checkout isn't clean"
-if [[ $DRY_RUN == 0 ]]; then git -C "$SITE" pull -q --ff-only; fi
+[[ "$(git -C "$SITE" branch --show-current)" == main ]] || fail "the bake-site checkout isn't on main"
+if [[ $DRY_RUN == 0 ]]; then
+    git -C "$SITE" pull -q --ff-only
+    [[ -z "$(git -C "$SITE" rev-list origin/main..main)" ]] \
+        || fail "the bake-site checkout has commits that aren't on origin/main; push or drop them"
+fi
 
 step "Running the tests"
 swift test --package-path "$ROOT/BakeCore" >/dev/null || fail "swift test failed"
@@ -90,6 +102,8 @@ DMG="$ROOT/build/release/$DMG_NAME"
 [[ -f "$DMG" ]] || fail "notarize.sh didn't produce $DMG_NAME"
 BUILT="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ROOT/build/release/export/BAKE.app/Contents/Info.plist")"
 [[ "$BUILT" == "$BUILD" ]] || fail "the app's build is $BUILT, expected $BUILD"
+BUILT_FEED="$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$ROOT/build/release/export/BAKE.app/Contents/Info.plist")"
+[[ "$BUILT_FEED" == "$FEED_URL" ]] || fail "the app's SUFeedURL is $BUILT_FEED, expected $FEED_URL"
 SHA="$(shasum -a 256 "$DMG" | awk '{ print $1 }')"
 
 step "Signing the update and writing the feed"
@@ -99,7 +113,7 @@ cp "$DMG" "$WORK/"
 OLD_FEED="$SITE/${FEED_DIR}appcast.xml"
 if [[ -f "$OLD_FEED" ]]; then cp "$OLD_FEED" "$WORK/appcast.xml"; fi
 OLD_ITEMS="$($APPCAST count "$WORK/appcast.xml")"
-"$SPARKLE_BIN/generate_appcast" --download-url-prefix "https://github.com/$REPO/releases/download/$TAG/" \
+"$SPARKLE_BIN/generate_appcast" --maximum-versions 0 --download-url-prefix "https://github.com/$REPO/releases/download/$TAG/" \
     -o "$WORK/appcast.xml" "$WORK"
 $APPCAST set-notes "$WORK/appcast.xml" --build "$BUILD" --url "$SITE_URL/${FEED_DIR}notes/$VERSION.html"
 xmllint --noout "$WORK/appcast.xml"
@@ -128,13 +142,9 @@ if [[ $DRY_RUN == 1 ]]; then
 fi
 
 step "Publishing the GitHub Release"
-if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
-    echo "$TAG already exists; checking its DMG is this one"
-else
-    RELEASE_FLAGS=(--title "BAKE $VERSION" --notes-file "$NOTES" --target "$(git -C "$ROOT" rev-parse HEAD)")
-    if [[ $REHEARSAL == 1 ]]; then RELEASE_FLAGS+=(--prerelease); fi
-    gh release create "$TAG" "$DMG" -R "$REPO" "${RELEASE_FLAGS[@]}"
-fi
+RELEASE_FLAGS=(--title "BAKE $VERSION" --notes-file "$NOTES" --target "$(git -C "$ROOT" rev-parse HEAD)")
+if [[ $REHEARSAL == 1 ]]; then RELEASE_FLAGS+=(--prerelease); fi
+gh release create "$TAG" "$DMG" -R "$REPO" "${RELEASE_FLAGS[@]}"
 # The feed only goes live once the file it points to downloads, byte for byte.
 DOWNLOADED="$WORK/downloaded.dmg"
 curl -fsSL -o "$DOWNLOADED" "$DMG_URL" || fail "$DMG_URL doesn't download"
@@ -142,8 +152,9 @@ curl -fsSL -o "$DOWNLOADED" "$DMG_URL" || fail "$DMG_URL doesn't download"
     || fail "the DMG on GitHub isn't this build's DMG; delete the release and run again"
 
 step "Publishing the feed"
-if $APPCAST has-build "$OLD_FEED" --build "$BUILD" 2>/dev/null; then
-    echo "the feed already has build $BUILD"
+NEW_SIG="$($APPCAST signature "$WORK/appcast.xml" --build "$BUILD")"
+if [[ -f "$OLD_FEED" && "$($APPCAST signature "$OLD_FEED" --build "$BUILD" 2>/dev/null)" == "$NEW_SIG" ]]; then
+    echo "the feed already has build $BUILD with this signature"
 else
     mkdir -p "$SITE/${FEED_DIR}notes"
     cp "$WORK/appcast.xml" "$SITE/${FEED_DIR}appcast.xml"

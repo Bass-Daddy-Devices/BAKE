@@ -26,6 +26,7 @@ expect_failure "the working tree isn't clean" scripts/release.sh 9.9.9 --dry-run
 rm scratch.txt
 
 expect_failure "MARKETING_VERSION is" scripts/release.sh 9.9.9 --dry-run
+expect_failure "a rehearsal version must be lower" scripts/release.sh 1.0.0 --rehearsal --dry-run
 
 sed -i '' "s/MARKETING_VERSION = $VERSION;/MARKETING_VERSION = 7.7.7;/" BAKE/BAKE.xcodeproj/project.pbxproj
 git -c user.name=test -c user.email=test@example.com commit -qam "test: 7.7.7"
