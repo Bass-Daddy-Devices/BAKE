@@ -40,3 +40,77 @@ struct UpdateConfigurationTests {
         #expect(entitlement("com.apple.security.network.client") == nil)
     }
 }
+
+/// Stands in for Sparkle, recording what BAKE asks of it.
+final class FakeUpdater: UpdaterDriving {
+    var canCheckForUpdates = true
+    var automaticallyChecksForUpdates = true
+    var automaticallyDownloadsUpdates = false
+    private(set) var startCount = 0
+    private(set) var checkCount = 0
+    private var onCanCheckChange: ((Bool) -> Void)?
+
+    func start() { startCount += 1 }
+    func checkForUpdates() { checkCount += 1 }
+
+    func observeCanCheckForUpdates(_ change: @escaping (Bool) -> Void) -> AnyObject {
+        onCanCheckChange = change
+        return NSObject()
+    }
+
+    /// What Sparkle does while a check runs (false) and when it ends (true).
+    func setCanCheckForUpdates(_ value: Bool) {
+        canCheckForUpdates = value
+        onCanCheckChange?(value)
+    }
+}
+
+@MainActor
+struct AppUpdaterTests {
+    @Test func releaseBuildsStartSparkleAtLaunch() {
+        let fake = FakeUpdater()
+        _ = AppUpdater(driver: fake, startsImmediately: true)
+        #expect(fake.startCount == 1)
+    }
+
+    /// Debug builds never check on their own, but Check for Updates… still works.
+    @Test func debugBuildsStartSparkleOnTheFirstManualCheck() {
+        let fake = FakeUpdater()
+        let updater = AppUpdater(driver: fake, startsImmediately: false)
+        #expect(fake.startCount == 0)
+        #expect(updater.canCheckForUpdates)
+
+        updater.checkForUpdates()
+        updater.checkForUpdates()
+
+        #expect(fake.startCount == 1)
+        #expect(fake.checkCount == 2)
+    }
+
+    @Test func settingsReadAndWriteSparkles() {
+        let fake = FakeUpdater()
+        fake.automaticallyChecksForUpdates = false
+        fake.automaticallyDownloadsUpdates = true
+        let updater = AppUpdater(driver: fake, startsImmediately: true)
+        #expect(updater.automaticallyChecksForUpdates == false)
+        #expect(updater.automaticallyDownloadsUpdates == true)
+
+        updater.automaticallyChecksForUpdates = true
+        updater.automaticallyDownloadsUpdates = false
+
+        #expect(fake.automaticallyChecksForUpdates == true)
+        #expect(fake.automaticallyDownloadsUpdates == false)
+    }
+
+    @Test func checkCommandIsDisabledWhileACheckRuns() {
+        let fake = FakeUpdater()
+        let updater = AppUpdater(driver: fake, startsImmediately: true)
+        #expect(updater.canCheckForUpdates)
+
+        fake.setCanCheckForUpdates(false)
+        #expect(updater.canCheckForUpdates == false)
+
+        fake.setCanCheckForUpdates(true)
+        #expect(updater.canCheckForUpdates)
+    }
+}
