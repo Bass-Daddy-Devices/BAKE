@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import Sparkle
+import SwiftUI
 
 /// The parts of Sparkle's updater BAKE uses, so tests can stand in for it.
 protocol UpdaterDriving: AnyObject {
@@ -88,6 +89,18 @@ final class SparkleDriver: UpdaterDriving {
         // Sparkle changes this on the main thread.
         controller.updater.observe(\.canCheckForUpdates, options: [.new]) { updater, _ in
             MainActor.assumeIsolated { change(updater.canCheckForUpdates) }
+        }
+    }
+}
+
+/// BAKE › Check for Updates…, right under About BAKE.
+struct CheckForUpdatesCommand: Commands {
+    let updater: AppUpdater
+
+    var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            Button("Check for Updates…") { updater.checkForUpdates() }
+                .disabled(!updater.canCheckForUpdates)
         }
     }
 }
