@@ -1,3 +1,4 @@
+import AppKit
 import BakeGraph
 import SwiftUI
 
@@ -349,6 +350,7 @@ public struct WorkspaceView: View {
         }
         #if DEBUG
         .task { await runBenchmarkIfRequested() }
+        .task { applyManualSceneIfRequested() }
         #endif
         .focusedSceneValue(\.canvasActions, CanvasActions(
             zoomIn: { model.zoom(by: 1.25) },
@@ -380,6 +382,20 @@ public struct WorkspaceView: View {
                 scale: 0.6 + 0.4 * sin(t * 0.7)
             )
             try? await Task.sleep(for: .milliseconds(8))
+        }
+    }
+
+    /// Launched with `-manualScene <name>`: shows a user-manual example patch in the dark
+    /// appearance at a fixed window size, for `ManualScreenshotTests`.
+    private func applyManualSceneIfRequested() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "-manualScene"), flag + 1 < arguments.count,
+              let scene = ManualScenes.project(named: arguments[flag + 1]) else { return }
+        $project.edit { $0 = scene }
+        NSApp.appearance = NSAppearance(named: .darkAqua)
+        if let window = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible) {
+            window.setContentSize(NSSize(width: 1440, height: 900))
+            window.center()
         }
     }
     #endif
