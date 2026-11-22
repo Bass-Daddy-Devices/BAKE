@@ -177,7 +177,7 @@ def build(args):
         index_html = "".join(f'<li><a href="#{s}">{htmllib.escape(t)}</a></li>' for t, s in sorted(index, key=lambda x: x[0].lower()))
         document = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{title}</title>
 <link rel="stylesheet" href="file://{MANUAL}/style/manual.css"><base href="file://{MANUAL}/">
-<style>@page {{ @top-right {{ content: "{title}"; font: 8pt "Inter"; color: #888; }} }}</style></head><body>
+<style>@page {{ @top-right {{ content: "{title}"; font: 8pt "Inter"; color: #888; }} }} @page cover {{ @top-right {{ content: none; }} }}</style></head><body>
 <section class="cover"><img src="{icon}"><h1>BAKE</h1><p>User Manual</p><p>Version {version}</p></section>
 <section class="part"><h1 id="contents">Contents</h1><nav class="toc"><ol>
 <li><a href="#part-guide">Part 1: Guide</a><ol>{toc_html}</ol></li>
