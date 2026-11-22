@@ -4,6 +4,8 @@ import SwiftUI
 
 @main
 struct BAKEApp: App {
+    @State private var updater = AppUpdater.live()
+
     init() {
         UserDefaults.standard.register(defaults: AppPreferences.registered)
     }
@@ -13,9 +15,12 @@ struct BAKEApp: App {
         DocumentGroup(newDocument: BakeDocument(project: AppPreferences.newProject())) { file in
             ContentView(document: file.$document)
         }
-        .commands { CanvasCommands() }
+        .commands {
+            CanvasCommands()
+            CheckForUpdatesCommand(updater: updater)
+        }
         Settings {
-            SettingsView()
+            SettingsView(updater: updater)
         }
     }
 }

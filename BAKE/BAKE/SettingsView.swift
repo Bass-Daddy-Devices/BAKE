@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 /// BAKE › Settings (⌘,): choices that apply to every document.
 struct SettingsView: View {
+    @Bindable var updater: AppUpdater
     @AppStorage(AppPreferences.outputDeviceKey) private var outputDevice = ""
     @AppStorage(AppPreferences.animateCardsKey) private var animateCards = true
     @AppStorage(AppPreferences.embedWorkflowKey) private var embedWorkflow = true
@@ -85,11 +86,23 @@ struct SettingsView: View {
                     Text(wordListsProblem).font(.caption).foregroundStyle(.red)
                 }
             }
+            Section("Updates") {
+                Toggle("Check for updates automatically", isOn: $updater.automaticallyChecksForUpdates)
+                    .accessibilityIdentifier("settings.checkAutomatically")
+                Toggle("Automatically download and install updates", isOn: $updater.automaticallyDownloadsUpdates)
+                    .accessibilityIdentifier("settings.downloadAutomatically")
+                    .disabled(!updater.automaticallyChecksForUpdates)
+                Text("BAKE asks bake.bass-daddy.com about new versions. Every update is signed and notarized.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
-        .onAppear { devices = AudioOutputDevices.list() }
+        .onAppear {
+            devices = AudioOutputDevices.list()
+            updater.refreshSettings()
+        }
         // A second picker on a separate view: SwiftUI ignores a second `fileImporter` on the same one.
         .background {
             Color.clear.fileImporter(isPresented: $isPickingWordLists, allowedContentTypes: [.folder]) { result in
@@ -130,5 +143,5 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView()
+    SettingsView(updater: AppUpdater(driver: SparkleDriver(), startsImmediately: false))
 }

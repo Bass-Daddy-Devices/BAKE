@@ -10,6 +10,7 @@
 		72926DDE307A0E62009892FD /* BakeCanvas in Frameworks */ = {isa = PBXBuildFile; productRef = 72926DDD307A0E62009892FD /* BakeCanvas */; };
 		72926DE4307A3DE7009892FD /* BakeSession in Frameworks */ = {isa = PBXBuildFile; productRef = 72926DE3307A3DE7009892FD /* BakeSession */; };
 		72F671D73078E92300CBA475 /* BakeGraph in Frameworks */ = {isa = PBXBuildFile; productRef = 72F671D63078E92300CBA475 /* BakeGraph */; };
+		72B5A0012F00000000000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 72B5A0022F00000000000001 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,6 +40,7 @@
 		72F671C83078E86200CBA475 /* Exceptions for "BAKE" folder in "BAKE" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				BAKE.entitlements,
 				Info.plist,
 			);
 			target = 727BC0783078BD00000B349E /* BAKE */;
@@ -73,6 +75,7 @@
 				72F671D73078E92300CBA475 /* BakeGraph in Frameworks */,
 				72926DE4307A3DE7009892FD /* BakeSession in Frameworks */,
 				72926DDE307A0E62009892FD /* BakeCanvas in Frameworks */,
+				72B5A0012F00000000000001 /* Sparkle in Frameworks */,
 			);
 		};
 		727BC0853078BD01000B349E /* Frameworks */ = {
@@ -137,6 +140,7 @@
 				72F671D63078E92300CBA475 /* BakeGraph */,
 				72926DDD307A0E62009892FD /* BakeCanvas */,
 				72926DE3307A3DE7009892FD /* BakeSession */,
+				72B5A0022F00000000000001 /* Sparkle */,
 			);
 			productName = BAKE;
 			productReference = 727BC0793078BD00000B349E /* BAKE.app */;
@@ -216,6 +220,9 @@
 			);
 			mainGroup = 727BC0703078BD00000B349E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				72B5A0032F00000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 727BC07A3078BD00000B349E /* Products */;
 			projectDirPath = "";
@@ -332,7 +339,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.6;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -390,7 +397,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.6;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -403,6 +410,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = Bake;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BAKE_FEED_URL = "https://bake.bass-daddy.com/appcast.xml";
+				CODE_SIGN_ENTITLEMENTS = BAKE/BAKE.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -437,6 +446,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = Bake;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BAKE_FEED_URL = "https://bake.bass-daddy.com/appcast.xml";
+				CODE_SIGN_ENTITLEMENTS = BAKE/BAKE.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -474,7 +485,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Z427P979RG;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.6;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bassdaddydevices.BAKETests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -496,7 +507,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Z427P979RG;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.6;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bassdaddydevices.BAKETests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -585,7 +596,23 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		72B5A0032F00000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		72B5A0022F00000000000001 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72B5A0032F00000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		72926DDD307A0E62009892FD /* BakeCanvas */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = BakeCanvas;

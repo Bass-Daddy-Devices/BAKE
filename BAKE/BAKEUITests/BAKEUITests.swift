@@ -34,6 +34,23 @@ final class BAKEUITests: XCTestCase {
     }
 
     @MainActor
+    func testSettingsHaveUpdateSwitchesAndTheMenuHasCheckForUpdates() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let appMenu = app.menuBars.menuBarItems["BAKE"]
+        appMenu.click()
+        XCTAssertTrue(app.menuItems["Check for Updates…"].exists)
+        app.typeKey(.escape, modifierFlags: [])
+
+        app.typeKey(",", modifierFlags: .command)
+        // A grouped Form can draw a Toggle as a checkbox or a switch, so match by identifier only.
+        let controls = app.descendants(matching: .any)
+        XCTAssertTrue(controls["settings.checkAutomatically"].waitForExistence(timeout: 5))
+        XCTAssertTrue(controls["settings.downloadAutomatically"].exists)
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {

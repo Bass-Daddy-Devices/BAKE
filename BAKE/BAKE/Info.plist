@@ -4,6 +4,14 @@
 <dict>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.music</string>
+	<key>SUFeedURL</key>
+	<string>$(BAKE_FEED_URL)</string>
+	<key>SUPublicEDKey</key>
+	<string>V9RRzsHamkv5ZkTHvXFwmnqinPh017lc/zVvyEDTH6E=</string>
+	<key>SUEnableDownloaderService</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
