@@ -10,6 +10,10 @@
 
 The documentation, including a page for every node, is in the [wiki](../../wiki).
 
+## Download
+
+Get the signed, notarized app from [bake.bass-daddy.com](https://bake.bass-daddy.com): buy it on Gumroad to support development, or download the same build from [Releases](../../releases/latest). BAKE updates itself (Settings › Updates).
+
 ## Requirements
 
 - macOS 26 or later on Apple Silicon
@@ -26,7 +30,9 @@ xcodebuild -workspace BAKE_WORKSPACE.xcworkspace -scheme BAKE -destination 'plat
   -derivedDataPath /tmp/bake-dd build
 ```
 
-Open `BAKE_WORKSPACE.xcworkspace` (not the project) in Xcode to run the app: the workspace brings in the local `BakeCore` package. To sign it yourself, choose your own team in the BAKE target's Signing settings.
+Open `BAKE_WORKSPACE.xcworkspace` (not the project) in Xcode to run the app: the workspace brings in the local `BakeCore` package. The first build downloads [Sparkle](https://sparkle-project.org), the update framework, so it needs a network connection once. To sign it yourself, choose your own team in the BAKE target's Signing settings.
+
+Releases are made by the maintainer with `scripts/release.sh` (it needs the project's signing and update keys).
 
 ## How it's built
 
