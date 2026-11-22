@@ -84,6 +84,12 @@ class Tests(unittest.TestCase):
         self.assertIn('<h3 id="node-half-time">', html)
         self.assertIn('id="node-half-time-on-the-card"', html)
 
+    def test_parse_node_page_drops_modulation_boilerplate(self):
+        text = PAGE.replace("## See also", "  Controls marked ✓ can be modulated: tick them on Page 2 and a pin appears for each.  \n\nKept line.\n\n## See also")
+        md = bm.parse_node_page(text)["markdown"]
+        self.assertNotIn("Controls marked", md)
+        self.assertIn("Kept line.", md)
+
     def test_check_marks(self):
         self.assertEqual(bm.check_marks("a <!-- check: does ⌘K open search? --> b"),
                          ["does ⌘K open search?"])

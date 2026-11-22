@@ -41,6 +41,7 @@ def parse_node_page(text):
     group_match = re.search(r"^\*\*Add Node:\*\*\s*(.+?)\s*$", body, re.M)
     group = group_match.group(1).strip() if group_match else ""
     body = re.split(r"^## See also\s*$", body, flags=re.M)[0].rstrip() + "\n"
+    body = re.sub(r"^[ \t]*Controls marked ✓ can be modulated: tick them on Page 2 and a pin appears for each\.[ \t]*\n?", "", body, flags=re.M)
     body = re.sub(r"^## ", "#### ", body, flags=re.M)
     body = re.sub(r"^# ", "### ", body, flags=re.M)
     return {"title": title, "group": group, "slug": "node-" + slugify(title),
@@ -93,6 +94,7 @@ def check_marks(md):
     return [s.strip() for s in re.findall(r"<!--\s*check:(.*?)-->", md, re.S)]
 
 import argparse
+import base64
 import glob
 import subprocess
 import tempfile
@@ -127,7 +129,8 @@ def cover_icon(work):
         fail("no built BAKE.app found for the cover icon; build the app first (see README)")
     png = os.path.join(work, "icon.png")
     subprocess.run(["sips", "-s", "format", "png", icns[0], "--out", png], capture_output=True, check=True)
-    return png
+    with open(png, "rb") as f:
+        return "data:image/png;base64," + base64.b64encode(f.read()).decode()
 
 
 def figures(html):
@@ -173,9 +176,9 @@ def build(args):
         ref_html = "".join(f'<li><a href="#{i}">{htmllib.escape(t)}</a></li>' for i, t in ref_toc)
         index_html = "".join(f'<li><a href="#{s}">{htmllib.escape(t)}</a></li>' for t, s in sorted(index, key=lambda x: x[0].lower()))
         document = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{title}</title>
-<link rel="stylesheet" href="file://{MANUAL}/style/manual.css"><base href="file://{MANUAL}/"></head><body>
-<span class="running-title">{title}</span>
-<section class="cover"><img src="file://{icon}"><h1>BAKE</h1><p>User Manual</p><p>Version {version}</p></section>
+<link rel="stylesheet" href="file://{MANUAL}/style/manual.css"><base href="file://{MANUAL}/">
+<style>@page {{ @top-right {{ content: "{title}"; font: 8pt "Inter"; color: #888; }} }}</style></head><body>
+<section class="cover"><img src="{icon}"><h1>BAKE</h1><p>User Manual</p><p>Version {version}</p></section>
 <section class="part"><h1 id="contents">Contents</h1><nav class="toc"><ol>
 <li><a href="#part-guide">Part 1: Guide</a><ol>{toc_html}</ol></li>
 <li><a href="#part-nodes">Part 2: Node reference</a><ol>{ref_html}</ol></li>
