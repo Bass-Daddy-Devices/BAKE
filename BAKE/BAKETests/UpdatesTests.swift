@@ -44,8 +44,14 @@ struct UpdateConfigurationTests {
 /// Stands in for Sparkle, recording what BAKE asks of it.
 final class FakeUpdater: UpdaterDriving {
     var canCheckForUpdates = true
-    var automaticallyChecksForUpdates = true
-    var automaticallyDownloadsUpdates = false
+    var automaticallyChecksForUpdates = true {
+        didSet { settingWrites += 1 }
+    }
+    var automaticallyDownloadsUpdates = false {
+        didSet { settingWrites += 1 }
+    }
+    /// How often either automatic setting was assigned since init.
+    private(set) var settingWrites = 0
     private(set) var startCount = 0
     private(set) var checkCount = 0
     private var onCanCheckChange: ((Bool) -> Void)?
@@ -100,6 +106,30 @@ struct AppUpdaterTests {
 
         #expect(fake.automaticallyChecksForUpdates == true)
         #expect(fake.automaticallyDownloadsUpdates == false)
+    }
+
+    /// Sparkle's consent prompt changes these behind BAKE's back.
+    @Test func refreshSettingsPicksUpChangesMadeBehindBakesBack() {
+        let fake = FakeUpdater()
+        let updater = AppUpdater(driver: fake, startsImmediately: true)
+        fake.automaticallyChecksForUpdates = false
+        fake.automaticallyDownloadsUpdates = true
+
+        updater.refreshSettings()
+
+        #expect(updater.automaticallyChecksForUpdates == false)
+        #expect(updater.automaticallyDownloadsUpdates == true)
+    }
+
+    /// Writing Sparkle's user default unprompted would suppress its consent prompt.
+    @Test func refreshSettingsWritesNothingBackWhenNothingChanged() {
+        let fake = FakeUpdater()
+        let updater = AppUpdater(driver: fake, startsImmediately: true)
+        let before = fake.settingWrites
+
+        updater.refreshSettings()
+
+        #expect(fake.settingWrites == before)
     }
 
     @Test func checkCommandIsDisabledWhileACheckRuns() {

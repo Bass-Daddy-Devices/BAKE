@@ -43,6 +43,17 @@ final class AppUpdater {
         if startsImmediately { startIfNeeded() }
     }
 
+    /// Sparkle's consent prompt changes the automatic settings behind BAKE's back, so Settings re-reads them.
+    /// Only assigns on a difference: `didSet` writes to Sparkle, and an unprompted write would skip its consent prompt.
+    func refreshSettings() {
+        if driver.automaticallyChecksForUpdates != automaticallyChecksForUpdates {
+            automaticallyChecksForUpdates = driver.automaticallyChecksForUpdates
+        }
+        if driver.automaticallyDownloadsUpdates != automaticallyDownloadsUpdates {
+            automaticallyDownloadsUpdates = driver.automaticallyDownloadsUpdates
+        }
+    }
+
     func checkForUpdates() {
         startIfNeeded()
         driver.checkForUpdates()
