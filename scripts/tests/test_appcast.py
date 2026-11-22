@@ -15,14 +15,14 @@ FEED = """<?xml version="1.0" encoding="utf-8"?>
       <sparkle:version>412</sparkle:version>
       <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-      <enclosure url="https://github.com/bassDaddyDevices/BAKE/releases/download/v1.0.0/BAKE-1.0.0.dmg"
+      <enclosure url="https://github.com/Bass-Daddy-Devices/BAKE/releases/download/v1.0.0/BAKE-1.0.0.dmg"
                  length="3074013" type="application/octet-stream" sparkle:edSignature="c2lnbmF0dXJl"/>
     </item>
   </channel>
 </rss>
 """
 
-URL = "https://github.com/bassDaddyDevices/BAKE/releases/download/v1.0.0/BAKE-1.0.0.dmg"
+URL = "https://github.com/Bass-Daddy-Devices/BAKE/releases/download/v1.0.0/BAKE-1.0.0.dmg"
 
 
 def run(*args):

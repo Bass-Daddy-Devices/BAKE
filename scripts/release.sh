@@ -27,7 +27,7 @@ done
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SITE="${BAKE_SITE:-$ROOT/../bake-site}"
-REPO="bassDaddyDevices/BAKE"
+REPO="Bass-Daddy-Devices/BAKE"
 SITE_URL="https://bake.bass-daddy.com"
 FEED_DIR=""
 if [[ $REHEARSAL == 1 ]]; then FEED_DIR="rehearsal/"; fi
