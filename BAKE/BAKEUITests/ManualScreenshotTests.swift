@@ -88,7 +88,7 @@ final class ManualScreenshotTests: XCTestCase {
     }
 
     @MainActor func testSettings() {
-        let app = launch(scene: "empty", extraArguments: ["-outputDeviceUID", ""])  // System Default, not the owner's interface
+        let app = launch(scene: "empty", extraArguments: ["-outputDeviceUID", "", "-SUEnableAutomaticChecks", "YES"])  // System Default, not the owner's interface; update checks on, as buyers who said yes see them
         app.typeKey(",", modifierFlags: .command)
         let settings = app.windows.containing(.any, identifier: "settings.outputDevice").firstMatch
         XCTAssertTrue(settings.waitForExistence(timeout: 5))
