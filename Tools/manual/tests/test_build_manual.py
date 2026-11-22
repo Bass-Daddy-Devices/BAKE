@@ -74,6 +74,16 @@ class Tests(unittest.TestCase):
         html = '<h2 id="baking">Baking</h2><a href="#baking">x</a><a href="#nope">y</a><a href="https://x">z</a>'
         self.assertEqual(bm.broken_anchors(html), ["nope"])
 
+    def test_duplicate_ids(self):
+        html = '<h4 id="a">x</h4><h4 id="a">y</h4><h4 id="a">z</h4><h4 id="b">w</h4>'
+        self.assertEqual(bm.duplicate_ids(html), ["a"])
+        self.assertEqual(bm.duplicate_ids('<h4 id="a">x</h4><h4 id="b">y</h4>'), [])
+
+    def test_node_ids(self):
+        html = bm.add_node_heading_ids("<h3>Half Time</h3><h4>On the card</h4>", "node-half-time")
+        self.assertIn('<h3 id="node-half-time">', html)
+        self.assertIn('id="node-half-time-on-the-card"', html)
+
     def test_check_marks(self):
         self.assertEqual(bm.check_marks("a <!-- check: does ⌘K open search? --> b"),
                          ["does ⌘K open search?"])

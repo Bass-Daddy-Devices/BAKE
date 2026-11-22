@@ -64,6 +64,21 @@ def add_heading_ids(html, prefix=""):
     return re.sub(r"<(h[1-4])([^>]*)>(.*?)</\1>", repl, html, flags=re.S)
 
 
+def add_node_heading_ids(html, slug):
+    """A node page's h3 gets exactly `slug`; its sub-headings are prefixed with it so they stay unique."""
+    html = add_heading_ids(html, prefix=slug + "-")
+    return re.sub(r'<h3([^>]*) id="[^"]*"', rf'<h3\1 id="{slug}"', html, count=1)
+
+
+def duplicate_ids(html):
+    seen, dupes = set(), []
+    for i in re.findall(r'\bid="([^"]+)"', html):
+        if i in seen and i not in dupes:
+            dupes.append(i)
+        seen.add(i)
+    return dupes
+
+
 def missing_images(html, images_dir):
     names = re.findall(r'<img[^>]+src="images/([^"]+)"', html)
     return [n for n in names if not os.path.exists(os.path.join(images_dir, n))]
@@ -76,3 +91,133 @@ def broken_anchors(html):
 
 def check_marks(md):
     return [s.strip() for s in re.findall(r"<!--\s*check:(.*?)-->", md, re.S)]
+
+import argparse
+import glob
+import subprocess
+import tempfile
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DOCS = os.path.join(ROOT, "BAKE_DOCS")
+MANUAL = os.path.join(DOCS, "manual")
+CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+
+def render(md):
+    out = subprocess.run(["gh", "api", "markdown", "-f", "mode=gfm", "-f", f"text={md}"],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        fail(f"gh api markdown failed: {out.stderr.strip()}")
+    # GitHub adds a link icon (<a class="anchor">…</a>) to each heading; the PDF doesn't want it.
+    html = re.sub(r'<a [^>]*class="anchor"[^>]*>.*?</a>', "", out.stdout, flags=re.S)
+    return re.sub(r"</?markdown-accessiblity-table>", "", html)
+
+
+def project_version():
+    out = subprocess.run(["xcodebuild", "-showBuildSettings", "-workspace", os.path.join(ROOT, "BAKE_WORKSPACE.xcworkspace"),
+                          "-scheme", "BAKE", "-configuration", "Release",
+                          "-clonedSourcePackagesDirPath", os.path.join(ROOT, "build", "packages")],
+                         capture_output=True, text=True)
+    return read_version(out.stdout)
+
+
+def cover_icon(work):
+    icns = glob.glob("/tmp/bake-dd*/Build/Products/*/BAKE.app/Contents/Resources/Bake.icns")
+    if not icns:
+        fail("no built BAKE.app found for the cover icon; build the app first (see README)")
+    png = os.path.join(work, "icon.png")
+    subprocess.run(["sips", "-s", "format", "png", icns[0], "--out", png], capture_output=True, check=True)
+    return png
+
+
+def figures(html):
+    """`<p><img src="images/x.png" alt="Caption"></p>` → a numbered figure with its caption."""
+    count = 0
+    def repl(m):
+        nonlocal count
+        count += 1
+        return f'<figure><img src="{m.group(1)}"><figcaption>Figure {count}: {m.group(2)}</figcaption></figure>'
+    # GitHub wraps each image in a link to itself: allow it and drop it.
+    return re.sub(r'<p>\s*(?:<a [^>]*>)?\s*<img src="(images/[^"]+)" alt="([^"]*)"[^>]*>\s*(?:</a>)?\s*</p>', repl, html)
+
+
+def build(args):
+    version = project_version()
+    title = f"BAKE {version} User Manual"
+    chapters = sorted(glob.glob(os.path.join(MANUAL, "guide", "[0-9][0-9]-*.md")))
+    if not chapters:
+        fail("no chapters in BAKE_DOCS/manual/guide")
+    marks, sections, toc = [], [], []
+    for path in chapters:
+        md = open(path).read()
+        marks += [f"{os.path.basename(path)}: {m}" for m in check_marks(md)]
+        html = add_heading_ids(render(md))
+        h1 = re.search(r'<h1[^>]*id="([^"]+)"[^>]*>(.*?)</h1>', html, re.S)
+        toc.append((h1.group(1), re.sub(r"<[^>]+>", "", h1.group(2)).strip()))
+        sections.append(f'<section class="chapter">{figures(html)}</section>')
+
+    pages = [p for p in (parse_node_page(open(f).read()) for f in glob.glob(os.path.join(DOCS, "wiki", "nodes", "*.md"))) if p]
+    ref, ref_toc, index = [], [], []
+    for group, nodes in group_nodes(pages):
+        gid = "group-" + slugify(group)
+        ref_toc.append((gid, group))
+        ref.append(f'<h2 id="{gid}">{htmllib.escape(group)}</h2>')
+        for p in nodes:
+            body = add_node_heading_ids(render(p["markdown"]), p["slug"])
+            ref.append(f'<div class="node">{body}</div>')
+            index.append((p["title"], p["slug"]))
+
+    with tempfile.TemporaryDirectory() as work:
+        icon = cover_icon(work)
+        toc_html = "".join(f'<li><a href="#{i}">{htmllib.escape(t)}</a></li>' for i, t in toc)
+        ref_html = "".join(f'<li><a href="#{i}">{htmllib.escape(t)}</a></li>' for i, t in ref_toc)
+        index_html = "".join(f'<li><a href="#{s}">{htmllib.escape(t)}</a></li>' for t, s in sorted(index, key=lambda x: x[0].lower()))
+        document = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{title}</title>
+<link rel="stylesheet" href="file://{MANUAL}/style/manual.css"><base href="file://{MANUAL}/"></head><body>
+<span class="running-title">{title}</span>
+<section class="cover"><img src="file://{icon}"><h1>BAKE</h1><p>User Manual</p><p>Version {version}</p></section>
+<section class="part"><h1 id="contents">Contents</h1><nav class="toc"><ol>
+<li><a href="#part-guide">Part 1: Guide</a><ol>{toc_html}</ol></li>
+<li><a href="#part-nodes">Part 2: Node reference</a><ol>{ref_html}</ol></li>
+<li><a href="#node-index">Node index</a></li></ol></nav></section>
+<section class="part"><h1 id="part-guide">Part 1: Guide</h1></section>
+{''.join(sections)}
+<section class="part"><h1 id="part-nodes">Part 2: Node reference</h1>
+<p>Every node, grouped as in the Add Node menu. Controls marked ✓ can be modulated: tick them on Page 2 and a pin appears for each.</p>
+{''.join(ref)}</section>
+<section class="part"><h1 id="node-index">Node index</h1><ul class="index">{index_html}</ul></section>
+</body></html>"""
+
+        problems = [f"missing image: {n}" for n in missing_images(document, os.path.join(MANUAL, "images"))]
+        problems += [f"broken link: #{a}" for a in broken_anchors(document)]
+        problems += [f"duplicate id: {i}" for i in duplicate_ids(document)]
+        if problems:
+            fail("the manual has problems:\n  " + "\n  ".join(problems))
+        for m in marks:
+            print(f"check: {m}")
+
+        out_dir = os.path.join(MANUAL, "out")
+        os.makedirs(out_dir, exist_ok=True)
+        html_path = os.path.join(out_dir, f"BAKE Manual {version}.html")
+        open(html_path, "w").write(document)
+        if args.html_only:
+            print(html_path)
+            return
+        pdf_path = os.path.join(out_dir, f"BAKE Manual {version}.pdf")
+        subprocess.run([CHROME, "--headless", "--no-pdf-header-footer", "--generate-pdf-document-outline",
+                        "--allow-file-access-from-files", f"--print-to-pdf={pdf_path}", "file://" + html_path],
+                       capture_output=True, check=True)
+        print(f"{pdf_path} ({os.path.getsize(pdf_path) // 1024} KB, {len(marks)} check marks)")
+        if not args.no_open:
+            subprocess.run(["open", pdf_path])
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--no-open", action="store_true")
+    parser.add_argument("--html-only", action="store_true")
+    build(parser.parse_args())
+
+
+if __name__ == "__main__":
+    main()
