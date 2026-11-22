@@ -44,7 +44,8 @@ fail() { echo "error: $1" >&2; exit 1; }
 
 step "Checking the release is ready"
 [[ -z "$(git -C "$ROOT" status --porcelain)" ]] || fail "the working tree isn't clean"
-PROJECT_VERSION="$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' "$ROOT/BAKE/BAKE.xcodeproj/project.pbxproj" | sort -u | tr '\n' ' ' | xargs)"
+PROJECT_VERSION="$(xcodebuild -showBuildSettings -workspace "$ROOT/BAKE_WORKSPACE.xcworkspace" -scheme BAKE -configuration Release \
+    -clonedSourcePackagesDirPath "$ROOT/build/packages" 2>/dev/null | awk '/^ *MARKETING_VERSION = / { print $3; exit }')"
 if [[ $REHEARSAL == 0 && "$PROJECT_VERSION" != "$VERSION" ]]; then
     fail "the project's MARKETING_VERSION is $PROJECT_VERSION, not $VERSION (bump it in a \"release: $VERSION\" commit)"
 fi
@@ -84,9 +85,13 @@ if [[ $DRY_RUN == 0 ]]; then
 fi
 
 step "Running the tests"
-swift test --package-path "$ROOT/BakeCore" >/dev/null || fail "swift test failed"
+mkdir -p "$ROOT/build"
+TEST_LOG="$ROOT/build/release-tests.log"
+swift test --package-path "$ROOT/BakeCore" >"$TEST_LOG" 2>&1 \
+    || { tail -40 "$TEST_LOG" >&2; fail "swift test failed (full log: $TEST_LOG)"; }
 xcodebuild -workspace "$ROOT/BAKE_WORKSPACE.xcworkspace" -scheme BAKE -destination 'platform=macOS' \
-    -derivedDataPath /tmp/bake-dd build -quiet || fail "the app build failed"
+    -derivedDataPath /tmp/bake-dd -clonedSourcePackagesDirPath "$ROOT/build/packages" build -quiet >>"$TEST_LOG" 2>&1 \
+    || { tail -40 "$TEST_LOG" >&2; fail "the app build failed (full log: $TEST_LOG)"; }
 
 COUNT="$(git -C "$ROOT" rev-list --count HEAD)"
 BUILD="$COUNT"
@@ -105,6 +110,8 @@ BUILT="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ROOT/build/releas
 BUILT_FEED="$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$ROOT/build/release/export/BAKE.app/Contents/Info.plist")"
 [[ "$BUILT_FEED" == "$FEED_URL" ]] || fail "the app's SUFeedURL is $BUILT_FEED, expected $FEED_URL"
 MIN_SYSTEM="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$ROOT/build/release/export/BAKE.app/Contents/Info.plist")"
+BUILT_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$ROOT/build/release/export/BAKE.app/Contents/Info.plist")"
+[[ "$BUILT_KEY" == "$PUBLIC_KEY" ]] || fail "the app's SUPublicEDKey doesn't match the Sparkle key in the Keychain"
 SHA="$(shasum -a 256 "$DMG" | awk '{ print $1 }')"
 
 step "Signing the update and writing the feed"
