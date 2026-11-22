@@ -26,6 +26,12 @@ struct ManualScenesTests {
         #expect(filters.modulated.contains("cutoff"))
     }
 
+    @Test func pinsSceneIsGeneratorIntoFilters() throws {
+        let project = try #require(ManualScenes.project(named: "pins"))
+        #expect(Set(project.nodes.map(\.kind)) == [.generator, .filters])
+        #expect(project.edges.count == 1)
+    }
+
     @Test func groupSceneHasOneCustomNode() throws {
         let project = try #require(ManualScenes.project(named: "group"))
         #expect(project.nodes.filter { $0.kind == .custom }.count == 1)

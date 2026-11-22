@@ -10,16 +10,24 @@ final class ManualScreenshotTests: XCTestCase {
     }
 
     @MainActor
-    private func launch(scene: String) -> XCUIApplication {
+    private func launch(scene: String, extraArguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES", "-manualScene", scene]
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES", "-manualScene", scene] + extraArguments
         app.launch()
         if app.dialogs.firstMatch.waitForExistence(timeout: 2) || app.sheets.firstMatch.exists {
             app.typeKey(.escape, modifierFlags: [])
         }
         app.typeKey("n", modifierFlags: .command)
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 5))
-        sleep(2)  // the scene's .task runs after the window appears; let cards settle
+        // The scene's .task resizes the window after it appears; a wrong size fails the capture.
+        let window = app.windows.firstMatch
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline, window.frame.size != CGSize(width: 1440, height: 900) { usleep(200_000) }
+        XCTAssertEqual(window.frame.size, CGSize(width: 1440, height: 900), "scene \(scene) didn't resize the window")
+        sleep(1)  // cards settle
+        // Park the pointer on empty canvas so no tooltip is showing.
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.98)).hover()
+        usleep(500_000)
         return app
     }
 
@@ -34,10 +42,21 @@ final class ManualScreenshotTests: XCTestCase {
         let app = launch(scene: "quickstart")
         XCTAssertTrue(app.descendants(matching: .any)["node.filters"].firstMatch.waitForExistence(timeout: 5))
         save(app.windows.firstMatch.screenshot(), as: "quickstart-patch")
+        zoomTwice(app)
         save(app.descendants(matching: .any)["node.filters"].firstMatch.screenshot(), as: "modulation-lane")
-        app.typeKey("=", modifierFlags: .command)
-        app.typeKey("=", modifierFlags: .command)
+    }
+
+    @MainActor func testPinsAndWire() {
+        let app = launch(scene: "pins")
+        zoomTwice(app)
         save(app.windows.firstMatch.screenshot(), as: "pins-and-wire")
+    }
+
+    /// Cards come out about twice as many pixels, which print needs on a non-Retina display.
+    @MainActor private func zoomTwice(_ app: XCUIApplication) {
+        app.typeKey("=", modifierFlags: .command)
+        app.typeKey("=", modifierFlags: .command)
+        sleep(1)
     }
 
     @MainActor func testEmptyDocumentAndSearch() {
@@ -51,6 +70,7 @@ final class ManualScreenshotTests: XCTestCase {
 
     @MainActor func testCardFrontAndPage2() {
         let app = launch(scene: "card")
+        zoomTwice(app)
         let card = app.descendants(matching: .any)["node.filters"].firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         save(card.screenshot(), as: "card-front")
@@ -68,7 +88,7 @@ final class ManualScreenshotTests: XCTestCase {
     }
 
     @MainActor func testSettings() {
-        let app = launch(scene: "empty")
+        let app = launch(scene: "empty", extraArguments: ["-outputDeviceUID", ""])  // System Default, not the owner's interface
         app.typeKey(",", modifierFlags: .command)
         let settings = app.windows.containing(.any, identifier: "settings.outputDevice").firstMatch
         XCTAssertTrue(settings.waitForExistence(timeout: 5))

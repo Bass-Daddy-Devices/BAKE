@@ -398,6 +398,10 @@ public struct WorkspaceView: View {
             if let window = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible) {
                 window.setContentSize(NSSize(width: 1440, height: 900))
                 window.center()
+                try? await Task.sleep(for: .milliseconds(500))  // let the canvas take its new size
+                let focus = ManualScenes.focus(named: arguments[flag + 1])
+                let size = model.viewSize == .zero ? CGSize(width: 1440, height: 900) : model.viewSize
+                model.viewport.offset = CGPoint(x: size.width / 2 - CGFloat(focus.x), y: size.height / 2 - CGFloat(focus.y))
                 return
             }
             try? await Task.sleep(for: .milliseconds(250))
