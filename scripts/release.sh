@@ -104,6 +104,7 @@ BUILT="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ROOT/build/releas
 [[ "$BUILT" == "$BUILD" ]] || fail "the app's build is $BUILT, expected $BUILD"
 BUILT_FEED="$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$ROOT/build/release/export/BAKE.app/Contents/Info.plist")"
 [[ "$BUILT_FEED" == "$FEED_URL" ]] || fail "the app's SUFeedURL is $BUILT_FEED, expected $FEED_URL"
+MIN_SYSTEM="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$ROOT/build/release/export/BAKE.app/Contents/Info.plist")"
 SHA="$(shasum -a 256 "$DMG" | awk '{ print $1 }')"
 
 step "Signing the update and writing the feed"
@@ -118,7 +119,7 @@ OLD_ITEMS="$($APPCAST count "$WORK/appcast.xml")"
 $APPCAST set-notes "$WORK/appcast.xml" --build "$BUILD" --url "$SITE_URL/${FEED_DIR}notes/$VERSION.html"
 xmllint --noout "$WORK/appcast.xml"
 $APPCAST check "$WORK/appcast.xml" --build "$BUILD" --version "$VERSION" --url "$DMG_URL" \
-    --min-items "$((OLD_ITEMS + 1))" --min-system 26.0
+    --min-items "$((OLD_ITEMS + 1))" --min-system "$MIN_SYSTEM"
 "$SPARKLE_BIN/sign_update" --verify "$DMG" "$($APPCAST signature "$WORK/appcast.xml" --build "$BUILD")" \
     || fail "Sparkle's signature on the DMG doesn't verify"
 
@@ -137,7 +138,7 @@ if [[ $DRY_RUN == 1 ]]; then
     mkdir -p "$PREVIEW/${FEED_DIR}notes"
     cp "$WORK/appcast.xml" "$PREVIEW/${FEED_DIR}appcast.xml"
     cp "$NOTES_HTML" "$PREVIEW/${FEED_DIR}notes/$VERSION.html"
-    step "Dry run done: $DMG (version $VERSION, build $BUILD, SHA-256 $SHA); feed in $PREVIEW"
+    step "Dry run done: $DMG (version $VERSION, build $BUILD, minimum macOS $MIN_SYSTEM, SHA-256 $SHA); feed in $PREVIEW"
     exit 0
 fi
 
@@ -164,7 +165,7 @@ else
     git -C "$SITE" push -q origin main
 fi
 
-step "Done: BAKE $VERSION (build $BUILD)"
+step "Done: BAKE $VERSION (build $BUILD, minimum macOS $MIN_SYSTEM)"
 echo "DMG:     $DMG"
 echo "SHA-256: $SHA"
 echo "Next:    upload this DMG to the Gumroad product (https://bassdaddy.gumroad.com/l/syqlk)."
