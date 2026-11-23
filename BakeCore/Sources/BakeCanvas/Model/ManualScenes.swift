@@ -80,6 +80,13 @@ public enum ManualScenes {
         var project = quickstart()
         let ids = Set(project.nodes.filter { $0.kind == .filters || $0.kind == .lfo }.map(\.id))
         _ = project.groupNodes(ids, name: "Wobble")
+        // The group lands where the cards were: lay the row out as Generator, Wobble, Bake.
+        let columns: [(NodeKind, Double)] = [(.generator, 0), (.custom, 340), (.print, 680)]
+        for index in project.nodes.indices {
+            if let column = columns.first(where: { $0.0 == project.nodes[index].kind }) {
+                project.nodes[index].position = CanvasPoint(x: column.1, y: 0)
+            }
+        }
         return project
     }
 }

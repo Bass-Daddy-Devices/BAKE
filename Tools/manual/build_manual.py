@@ -6,8 +6,18 @@ import os
 import re
 import sys
 
+# To update this manual for a new BAKE version:
+#   1. Regenerate the node pages:   python3 Tools/wiki/node_pages.py
+#   2. Re-capture the screenshots:  Tools/manual/capture_screenshots.sh
+#   3. Edit the chapters in BAKE_DOCS/manual/guide for anything that changed.
+#   4. Build the PDF:               python3 Tools/manual/build_manual.py
+#   5. Zip the PDF together with the DMG for the release.
+# Needs: `gh` logged in; Google Chrome in /Applications; a Debug build in /tmp/bake-dd* (the cover icon).
+# For screenshots also: Screen Recording allowed for the agent or terminal, automation mode approved,
+# and a display at least 1440x900 points.
+
 GROUP_ORDER = ["In & Out", "Batch", "Effects › Filters", "Effects › Distortion", "Effects › Dynamics",
-               "Effects › Modulation FX", "Spectral", "Time", "Wavetable", "Routing", "Modulation"]
+               "Effects › Modulation FX", "Effects › Spectral", "Time", "Wavetable", "Routing", "Modulation"]
 
 
 def fail(message):
@@ -40,6 +50,9 @@ def parse_node_page(text):
     title = re.search(r"^# (.+)$", body, re.M).group(1).strip()
     group_match = re.search(r"^\*\*Add Node:\*\*\s*(.+?)\s*$", body, re.M)
     group = group_match.group(1).strip() if group_match else ""
+    if group == "Spectral":  # the app nests Spectral under Effects
+        group = "Effects › Spectral"
+        body = body.replace(group_match.group(0), "**Add Node:** " + group)
     body = re.split(r"^## See also\s*$", body, flags=re.M)[0].rstrip() + "\n"
     body = re.sub(r"^[ \t]*Controls marked ✓ can be modulated: tick them on Page 2 and a pin appears for each\.[ \t]*\n?", "", body, flags=re.M)
     body = re.sub(r"^## ", "#### ", body, flags=re.M)
@@ -194,7 +207,9 @@ def build(args):
 <li><a href="#part-guide">Part 1: Guide</a><ol>{toc_html}</ol></li>
 <li><a href="#part-nodes">Part 2: Node reference</a><ol>{ref_html}</ol></li>
 <li><a href="#node-index">Node index</a></li></ol></nav></section>
-<section class="part"><h1 id="part-guide">Part 1: Guide</h1></section>
+<section class="part"><h1 id="part-guide">Part 1: Guide</h1>
+<h4>How to use this manual</h4>
+<p>Part 1 teaches BAKE in order and starts with a five-minute quick start. Part 2 is a reference for every node, grouped like the Add Node menu, with a node index at the end. Links are clickable, and the sidebar bookmarks in Preview jump anywhere.</p></section>
 {''.join(sections)}
 <section class="part"><h1 id="part-nodes">Part 2: Node reference</h1>
 <p>Every node, grouped as in the Add Node menu. Controls marked ✓ can be modulated: tick them on Page 2 and a pin appears for each.</p>

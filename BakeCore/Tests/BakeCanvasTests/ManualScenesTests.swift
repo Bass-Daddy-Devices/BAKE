@@ -37,6 +37,13 @@ struct ManualScenesTests {
         #expect(project.nodes.filter { $0.kind == .custom }.count == 1)
     }
 
+    @Test func groupSceneCardsDoNotOverlap() throws {
+        let project = try #require(ManualScenes.project(named: "group"))
+        let xs = project.nodes.map(\.position.x).sorted()
+        #expect(Set(xs).count == project.nodes.count)
+        #expect(zip(xs, xs.dropFirst()).allSatisfy { $1 - $0 >= 300 })
+    }
+
     @Test func scenesUseNoAudioFiles() {
         for name in ManualScenes.names {
             let kinds = ManualScenes.project(named: name)?.nodes.map(\.kind) ?? []

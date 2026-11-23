@@ -51,9 +51,16 @@ class Tests(unittest.TestCase):
 
     def test_group_order_matches_add_node_menu(self):
         pages = [{"title": t, "group": g} for t, g in
-                 [("a", "Modulation"), ("b", "Routing"), ("c", "Time"), ("d", "Spectral"), ("e", "Batch"), ("f", "In & Out")]]
+                 [("a", "Modulation"), ("b", "Routing"), ("c", "Time"), ("d", "Effects › Spectral"), ("e", "Batch"), ("f", "In & Out")]]
         self.assertEqual([g for g, _ in bm.group_nodes(pages)],
-                         ["In & Out", "Batch", "Spectral", "Time", "Routing", "Modulation"])
+                         ["In & Out", "Batch", "Effects › Spectral", "Time", "Routing", "Modulation"])
+
+    def test_spectral_is_nested_under_effects(self):
+        page = bm.parse_node_page("---\ntype: node\n---\n# Vocoder\n\n**Add Node:** Spectral\n\nText.\n")
+        self.assertEqual(page["group"], "Effects › Spectral")
+        self.assertIn("**Add Node:** Effects › Spectral", page["markdown"])
+        self.assertIn("Effects › Spectral", bm.GROUP_ORDER)
+        self.assertNotIn("Spectral", bm.GROUP_ORDER)
 
     def test_figure_numbers_continue(self):
         one = '<p><img src="images/a.png" alt="A"></p><p><img src="images/b.png" alt="B"></p>'
