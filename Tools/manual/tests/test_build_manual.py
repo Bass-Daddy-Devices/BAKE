@@ -49,6 +49,21 @@ class Tests(unittest.TestCase):
         self.assertEqual([g for g, _ in grouped], ["In & Out", "Time"])
         self.assertEqual([p["title"] for p in grouped[1][1]], ["Delay", "Reverb"])
 
+    def test_group_order_matches_add_node_menu(self):
+        pages = [{"title": t, "group": g} for t, g in
+                 [("a", "Modulation"), ("b", "Routing"), ("c", "Time"), ("d", "Spectral"), ("e", "Batch"), ("f", "In & Out")]]
+        self.assertEqual([g for g, _ in bm.group_nodes(pages)],
+                         ["In & Out", "Batch", "Spectral", "Time", "Routing", "Modulation"])
+
+    def test_figure_numbers_continue(self):
+        one = '<p><img src="images/a.png" alt="A"></p><p><img src="images/b.png" alt="B"></p>'
+        html, nxt = bm.figures(one)
+        self.assertIn("Figure 1: A", html)
+        self.assertIn("Figure 2: B", html)
+        html, nxt = bm.figures('<p><img src="images/c.png" alt="C"></p>', nxt)
+        self.assertIn("Figure 3: C", html)
+        self.assertEqual(nxt, 4)
+
     def test_unknown_group_fails(self):
         with self.assertRaises(SystemExit):
             bm.group_nodes([{"title": "X", "group": "Nowhere"}])

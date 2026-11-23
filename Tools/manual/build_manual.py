@@ -6,8 +6,8 @@ import os
 import re
 import sys
 
-GROUP_ORDER = ["In & Out", "Effects › Filters", "Effects › Distortion", "Effects › Dynamics",
-               "Effects › Modulation FX", "Time", "Spectral", "Wavetable", "Modulation", "Routing", "Batch"]
+GROUP_ORDER = ["In & Out", "Batch", "Effects › Filters", "Effects › Distortion", "Effects › Dynamics",
+               "Effects › Modulation FX", "Spectral", "Time", "Wavetable", "Routing", "Modulation"]
 
 
 def fail(message):
@@ -133,15 +133,17 @@ def cover_icon(work):
         return "data:image/png;base64," + base64.b64encode(f.read()).decode()
 
 
-def figures(html):
-    """`<p><img src="images/x.png" alt="Caption"></p>` → a numbered figure with its caption."""
-    count = 0
+def figures(html, start=1):
+    """`<p><img src="images/x.png" alt="Caption"></p>` → a numbered figure with its caption.
+    Returns the new HTML and the next figure number, so numbering can continue across chapters."""
+    count = start - 1
     def repl(m):
         nonlocal count
         count += 1
         return f'<figure><img src="{m.group(1)}"><figcaption>Figure {count}: {m.group(2)}</figcaption></figure>'
     # GitHub wraps each image in a link to itself: allow it and drop it.
-    return re.sub(r'<p>\s*(?:<a [^>]*>)?\s*<img src="(images/[^"]+)" alt="([^"]*)"[^>]*>\s*(?:</a>)?\s*</p>', repl, html)
+    out = re.sub(r'<p>\s*(?:<a [^>]*>)?\s*<img src="(images/[^"]+)" alt="([^"]*)"[^>]*>\s*(?:</a>)?\s*</p>', repl, html)
+    return out, count + 1
 
 
 def build(args):
@@ -150,14 +152,15 @@ def build(args):
     chapters = sorted(glob.glob(os.path.join(MANUAL, "guide", "[0-9][0-9]-*.md")))
     if not chapters:
         fail("no chapters in BAKE_DOCS/manual/guide")
-    marks, sections, toc = [], [], []
+    marks, sections, toc, figure_no = [], [], [], 1
     for path in chapters:
         md = open(path).read()
         marks += [f"{os.path.basename(path)}: {m}" for m in check_marks(md)]
         html = add_heading_ids(render(md))
         h1 = re.search(r'<h1[^>]*id="([^"]+)"[^>]*>(.*?)</h1>', html, re.S)
         toc.append((h1.group(1), re.sub(r"<[^>]+>", "", h1.group(2)).strip()))
-        sections.append(f'<section class="chapter">{figures(html)}</section>')
+        html, figure_no = figures(html, figure_no)
+        sections.append(f'<section class="chapter">{html}</section>')
 
     pages = [p for p in (parse_node_page(open(f).read()) for f in glob.glob(os.path.join(DOCS, "wiki", "nodes", "*.md"))) if p]
     ref, ref_toc, index = [], [], []
