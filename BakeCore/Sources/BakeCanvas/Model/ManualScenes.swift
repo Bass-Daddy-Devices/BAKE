@@ -1,0 +1,93 @@
+#if DEBUG
+import BakeGraph
+
+/// Example patches for the user manual's screenshots, opened with `-manualScene <name>`.
+/// Sound comes only from Generator nodes, so no audio files or personal names appear.
+public enum ManualScenes {
+    public static let names = ["quickstart", "empty", "card", "pins", "clock", "batch", "group"]
+
+    public static func project(named name: String) -> ProjectFile? {
+        switch name {
+        case "quickstart": quickstart()
+        case "empty": ProjectFile()
+        case "card": card()
+        case "pins": pins()
+        case "clock": clock()
+        case "batch": batch()
+        case "group": group()
+        default: nil
+        }
+    }
+
+    private static func quickstart() -> ProjectFile {
+        var project = ProjectFile()
+        let generator = project.addNode(.generator, at: CanvasPoint(x: 0, y: 0))
+        let lfo = project.addNode(.lfo, at: CanvasPoint(x: 0, y: 240))
+        let filters = project.addNode(.filters, at: CanvasPoint(x: 340, y: 0))
+        let bake = project.addNode(.print, at: CanvasPoint(x: 680, y: 0))
+        project.setModulated("cutoff", of: filters, true)
+        try? project.connect(from: PinRef(node: generator, pin: "out"), to: PinRef(node: filters, pin: "in"))
+        try? project.connect(from: PinRef(node: lfo, pin: "out"), to: PinRef(node: filters, pin: "mod.cutoff"))
+        try? project.connect(from: PinRef(node: filters, pin: "out"), to: PinRef(node: bake, pin: "in"))
+        return project
+    }
+
+    /// Where the scene's content is centred in the window (world coordinates, at 100% zoom).
+    public static func focus(named name: String) -> CanvasPoint {
+        switch name {
+        case "quickstart", "batch", "group": CanvasPoint(x: 460, y: 260)
+        case "card": CanvasPoint(x: 120, y: 190)
+        case "pins": CanvasPoint(x: 290, y: 190)
+        case "clock": CanvasPoint(x: 290, y: 150)
+        default: CanvasPoint(x: 0, y: 0)
+        }
+    }
+
+    /// Generator Out → Filters In, for the pins-and-wire picture.
+    private static func pins() -> ProjectFile {
+        var project = ProjectFile()
+        let generator = project.addNode(.generator, at: CanvasPoint(x: 0, y: 0))
+        let filters = project.addNode(.filters, at: CanvasPoint(x: 340, y: 0))
+        try? project.connect(from: PinRef(node: generator, pin: "out"), to: PinRef(node: filters, pin: "in"))
+        return project
+    }
+
+    private static func card() -> ProjectFile {
+        var project = ProjectFile()
+        _ = project.addNode(.filters, at: CanvasPoint(x: 0, y: 0))
+        return project
+    }
+
+    private static func clock() -> ProjectFile {
+        var project = ProjectFile()
+        let clock = project.addNode(.clock, at: CanvasPoint(x: 0, y: 0))
+        let envelope = project.addNode(.envelope, at: CanvasPoint(x: 340, y: 0))
+        try? project.connect(from: PinRef(node: clock, pin: "out"), to: PinRef(node: envelope, pin: "trigger"))
+        return project
+    }
+
+    private static func batch() -> ProjectFile {
+        var project = ProjectFile()
+        let source = project.addNode(.batchAudio, at: CanvasPoint(x: 0, y: 0))
+        let filters = project.addNode(.filters, at: CanvasPoint(x: 340, y: 0))
+        let sink = project.addNode(.batchBake, at: CanvasPoint(x: 680, y: 0))
+        try? project.connect(from: PinRef(node: source, pin: "out"), to: PinRef(node: filters, pin: "in"))
+        try? project.connect(from: PinRef(node: filters, pin: "out"), to: PinRef(node: sink, pin: "in"))
+        return project
+    }
+
+    private static func group() -> ProjectFile {
+        var project = quickstart()
+        let ids = Set(project.nodes.filter { $0.kind == .filters || $0.kind == .lfo }.map(\.id))
+        _ = project.groupNodes(ids, name: "Wobble")
+        // The group lands where the cards were: lay the row out as Generator, Wobble, Bake.
+        let columns: [(NodeKind, Double)] = [(.generator, 0), (.custom, 340), (.print, 680)]
+        for index in project.nodes.indices {
+            if let column = columns.first(where: { $0.0 == project.nodes[index].kind }) {
+                project.nodes[index].position = CanvasPoint(x: column.1, y: 0)
+            }
+        }
+        return project
+    }
+}
+#endif
