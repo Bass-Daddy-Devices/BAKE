@@ -71,6 +71,14 @@ def add_node_heading_ids(html, slug):
     return re.sub(r'<h3([^>]*) id="[^"]*"', rf'<h3\1 id="{slug}"', html, count=1)
 
 
+def add_chapter_heading_ids(html):
+    """The chapter's h1 keeps its bare slug (cross-references link to it); other headings are prefixed with it."""
+    m = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S)
+    slug = slugify(m.group(1)) if m else "chapter"
+    html = add_heading_ids(html, prefix=slug + "-")
+    return re.sub(r'<h1([^>]*) id="[^"]*"', rf'<h1\1 id="{slug}"', html, count=1)
+
+
 def duplicate_ids(html):
     seen, dupes = set(), []
     for i in re.findall(r'\bid="([^"]+)"', html):
@@ -156,7 +164,7 @@ def build(args):
     for path in chapters:
         md = open(path).read()
         marks += [f"{os.path.basename(path)}: {m}" for m in check_marks(md)]
-        html = add_heading_ids(render(md))
+        html = add_chapter_heading_ids(render(md))
         h1 = re.search(r'<h1[^>]*id="([^"]+)"[^>]*>(.*?)</h1>', html, re.S)
         toc.append((h1.group(1), re.sub(r"<[^>]+>", "", h1.group(2)).strip()))
         html, figure_no = figures(html, figure_no)

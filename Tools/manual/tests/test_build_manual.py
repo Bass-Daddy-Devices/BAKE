@@ -105,6 +105,14 @@ class Tests(unittest.TestCase):
         self.assertNotIn("Controls marked", md)
         self.assertIn("Kept line.", md)
 
+    def test_chapter_ids_are_unique_per_chapter(self):
+        a = bm.add_chapter_heading_ids("<h1>Settings</h1><h2>Updates</h2>")
+        b = bm.add_chapter_heading_ids("<h1>Welcome</h1><h2>Updates</h2>")
+        self.assertIn('<h1 id="settings">', a)
+        self.assertIn('<h1 id="welcome">', b)
+        self.assertEqual(bm.duplicate_ids(a + b), [])
+        self.assertIn('id="settings-updates"', a)
+
     def test_check_marks(self):
         self.assertEqual(bm.check_marks("a <!-- check: does ⌘K open search? --> b"),
                          ["does ⌘K open search?"])
